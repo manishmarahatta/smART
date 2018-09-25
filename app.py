@@ -68,16 +68,16 @@ target_pred = clf.predict(features_test)
 acc = accuracy_score(target_test, target_pred, normalize=True)
 #print("the accuracy of our Gaussian Niave Bayes Model is: ",acc)
 
-# e = float(input('Enter your gender: '))
-# f = float(input('Enter your WHO Stage: '))
-# g = float(input('Enter your Duration: '))
-# h = float(input('Enter your Start CD4: '))
-# i = float(input('Enter number of CD4 Done: '))
-# j = float(input('Enter your recent CD4: '))
-#
-# list1 = [e, f, g, h, i, j]
+e = float(input('Enter your gender: '))
+f = float(input('Enter your WHO Stage: '))
+g = float(input('Enter your Duration: '))
+h = float(input('Enter your Start CD4: '))
+i = float(input('Enter number of CD4 Done: '))
+j = float(input('Enter your recent CD4: '))
 
-prediction = clf.predict
+list1 = [e, f, g, h, i, j]
+
+prediction = clf.predict(list1)
 print("The Performance of Patient is:")
 print(prediction)
 
