@@ -1,4 +1,3 @@
-from flask import Flask, request, redirect, render_template
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
@@ -7,22 +6,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import accuracy_score
 
+from flask import Flask
+from flask_restful import reqparse, abort, Api, Resource
+
 app = Flask(__name__)
+api = Api(app)
 
-@app.route("/")
-def index():
-    return render_template('index.html')
-
-@app.route('/result', methods = ['POST'])
-def result():
-    age = request.form['age']
-    stage = request.form['stage']
-    duration = request.form['duration']
-    start_cd4 = request.form['start_cd4']
-    final_cd4 = request.form['final_cd4']
-    return render_template('result.html', age = age, stage = stage, duration = duration, start_cd4 = start_cd4, final_cd4 = final_cd4, prediction = prediction)
-
-df = pd.read_csv("/Users/manishmarahatta/goru-laati-smArt/FINALcsvfile.csv", index_col=0)
+df = pd.read_csv("/home/dexter/eydean/smART/FINALcsvfile.csv", index_col=0)
 # print(df.columns)
 # print(df.corr())
 
@@ -66,20 +56,64 @@ target_pred = clf.predict(features_test)
 
 
 acc = accuracy_score(target_test, target_pred, normalize=True)
-#print("the accuracy of our Gaussian Niave Bayes Model is: ",acc)
 
-e = float(input('Enter your gender: '))
-f = float(input('Enter your WHO Stage: '))
-g = float(input('Enter your Duration: '))
-h = float(input('Enter your Start CD4: '))
-i = float(input('Enter number of CD4 Done: '))
-j = float(input('Enter your recent CD4: '))
+PPS = {
+    'pp1': {
+        'gender': 1,
+        'who_stage': 1,
+        'duration': 1,
+        'start_cd4': 1,
+        'no_cd4_done': 1,
+        'recent_cd4': 1
+    }
+}
 
-list1 = [e, f, g, h, i, j]
 
-prediction = clf.predict(list1)
-print("The Performance of Patient is:")
-print(prediction)
+def abort_if_pp_doesnt_exist(pp_id):
+    if pp_id not in PPS:
+        abort(404, message="PatientPerformance {} doesn't exist".format(pp_id))
 
-if __name__ == "__main__":
-    app.run(debug=True,host='0.0.0.0')
+parser = reqparse.RequestParser(bundle_errors=True)
+parser.add_argument('gender', type=float, help='Must be boolean')
+parser.add_argument('who_stage', type=float)
+parser.add_argument('duration', type=float)
+parser.add_argument('start_cd4', type=float)
+parser.add_argument('no_cd4_done', type=float)
+parser.add_argument('recent_cd4', type=float)
+
+
+class PatientPerformanceList(Resource):
+    def get(self):
+        return PPS
+
+    def post(self):
+        args = parser.parse_args()
+        pp_id = int(max(PPS.keys()).lstrip('pp')) + 1
+        pp_id = 'pp%i' % pp_id
+        data1 = [
+            args['gender'],
+            args['who_stage'],
+            args['duration'],
+            args['start_cd4'],
+            args['no_cd4_done'],
+            args['recent_cd4']
+        ]
+        data1 = np.array(data1).reshape(1, -1)
+        prediction = clf.predict(data1)
+        PPS[pp_id] = {
+            'gender': args['gender'],
+            'who_stage': args['who_stage'],
+            'duration': args['duration'],
+            'start_cd4': args['start_cd4'],
+            'no_cd4_done': args['no_cd4_done'],
+            'recent_cd4': args['recent_cd4'],
+            'result': str(prediction)
+        }
+        return PPS[pp_id], 201
+
+
+api.add_resource(PatientPerformanceList, '/pat_per')
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
